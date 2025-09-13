@@ -1,0 +1,28 @@
+# Ignore les dossiers virtuels Python
+venv/
+ENV/
+env/
+__pycache__/
+
+# Fichiers Python compilés
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Fichiers et dossiers cachés
+*.log
+*.DS_Store
+*.env
+*.git
+*.idea
+*.vscode
+
+# Fichiers temporaires
+*.swp
+*.bak
+*.tmp
+
+# Dossiers médias (si vous gérez des uploads)
+media/
+staticfiles/

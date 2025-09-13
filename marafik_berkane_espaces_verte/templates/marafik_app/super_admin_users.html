@@ -1,0 +1,138 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Utilisateurs - Marafik Berkane</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/super_admin_users.css' %}">
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
+</head>
+<body>
+    <!-- Navbar -->
+    {% include 'partials/navbar.html' %}
+
+    <!-- Contenu principal -->
+    <div class="container my-5" style="max-width: 1500px;">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-10 col-md-10 col-lg-10">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">Gestion des Utilisateurs</h2>
+                        <p class="text-center text-muted">Gérez les utilisateurs : rôles et statut.</p>
+
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-info mb-4">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Compteurs -->
+                        <div class="row mb-5">
+                            <div class="col-12 col-md-6 col-lg-3 mb-3 d-flex align-items-stretch">
+                                <div class="card h-100 w-100 border-0 shadow-sm text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Total</h5>
+                                        <p class="display-6">{{ total_utilisateurs }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3 mb-3 d-flex align-items-stretch">
+                                <div class="card h-100 w-100 border-0 shadow-sm text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Employés</h5>
+                                        <p class="display-6">{{ employes }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3 mb-3 d-flex align-items-stretch">
+                                <div class="card h-100 w-100 border-0 shadow-sm text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Admins</h5>
+                                        <p class="display-6">{{ admins }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-3 mb-3 d-flex align-items-stretch">
+                                <div class="card h-100 w-100 border-0 shadow-sm text-center">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Super Admins</h5>
+                                        <p class="display-6">{{ super_admins }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tableau des utilisateurs -->
+                        <h4 class="mb-3">Liste des Utilisateurs</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nom</th>
+                                        <th>Email</th>
+                                        <th>Rôle</th>
+                                        <th>Statut</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for utilisateur in utilisateurs %}
+                                        <tr>
+                                            <td>{{ utilisateur.user.first_name }} {{ utilisateur.user.last_name }}</td>
+                                            <td>{{ utilisateur.user.email }}</td>
+                                            <td>
+                                                <!-- Formulaire pour changer le rôle -->
+                                                <form method="post" action="{% url 'super_admin_users' %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="user_id" value="{{ utilisateur.user.id }}">
+                                                    <input type="hidden" name="action" value="change_role">
+                                                    <div class="input-group input-group-sm">
+                                                        <select name="new_role_id" class="form-select" onchange="this.closest('form').submit()">
+                                                            {% for role in roles %}
+                                                                <option value="{{ role.id }}" {% if utilisateur.role.id == role.id %}selected{% endif %}>
+                                                                    {{ role.nom }}
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                            <td>{{ utilisateur.actif|yesno:"Actif,Inactif" }}</td>
+                                            <td>
+                                                <!-- Formulaire pour activer/désactiver -->
+                                                <form method="post" action="{% url 'super_admin_users' %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="user_id" value="{{ utilisateur.user.id }}">
+                                                    <input type="hidden" name="action" value="toggle_status">
+                                                    <button type="submit" class="btn btn-sm {% if utilisateur.actif %}btn-danger{% else %}btn-success{% endif %}">
+                                                        {% if utilisateur.actif %}Désactiver{% else %}Activer{% endif %}
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">Aucun utilisateur trouvé.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    {% include 'partials/footer.html' %}
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

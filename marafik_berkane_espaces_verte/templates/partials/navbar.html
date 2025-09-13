@@ -1,0 +1,128 @@
+{% load static %}
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container-fluid">
+        <!-- Logo à gauche -->
+        <a class="navbar-brand" href="{% url 'home' %}">
+            <img src="{% static 'images/logo_marafik_berkane.png' %}" alt="Marafik Berkane Logo" class="logo">
+        </a>
+        <!-- Bouton hamburger pour mobile -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <!-- Liens au centre -->
+        <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">Accueil</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" href="{% url 'about' %}">À propos</a>
+                </li>
+                {% if user.is_authenticated %}
+                    {% with utilisateur=user.utilisateur %}
+                        {% if utilisateur and utilisateur.role %}
+                            {% if utilisateur.role.nom == "Employé" %}
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'employee_task' %}active{% endif %}" href="{% url 'employee_task' %}">Tâches Employé</a>
+                                </li>
+                            {% elif utilisateur.role.nom == "Admin" %}
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'admin_setup' %}active{% endif %}" href="{% url 'admin_setup' %}">Configuration Admin</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'admin_task_types' %}active{% endif %}" href="{% url 'admin_task_types' %}">Types de Tâches</a>
+                                </li>
+                                
+                            {% elif utilisateur.role.nom == "Super Admin" %}
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'admin_setup' %}active{% endif %}" href="{% url 'admin_setup' %}">Configuration Admin</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'admin_task_types' %}active{% endif %}" href="{% url 'admin_task_types' %}">Types de Tâches</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'super_admin_users' %}active{% endif %}" href="{% url 'super_admin_users' %}">Utilisateurs</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'historique' %}active{% endif %}" href="{% url 'historique' %}">Historique</a>
+                                </li>
+                            
+                            {% endif %}
+                            <!-- Afficher le rôle -->
+                            <li class="nav-item">
+                                <span class="nav-link text-muted">Rôle : {{ utilisateur.role.nom }}</span>
+                            </li>
+                        {% else %}
+                            <!-- Message d'erreur avec user_id -->
+                            <li class="nav-item">
+                                <span class="nav-link text-danger">Erreur : Aucun rôle associé (user_id={{ user.id|default:'inconnu' }})</span>
+                            </li>
+                        {% endif %}
+                    {% endwith %}
+                {% endif %}
+            </ul>
+        </div>
+        <!-- Boutons à droite -->
+        <div class="d-flex">
+            {% if user.is_authenticated %}
+                <button class="btn btn-dark" onclick="confirmLogout()">Déconnexion</button>
+            {% else %}
+                <a href="{% url 'register' %}" class="btn btn-outline-dark me-2">S'inscrire</a>
+                <a href="{% url 'login' %}" class="btn btn-dark">Se connecter</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<!-- Modal de confirmation pour la déconnexion -->
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logoutModalLabel">Confirmation de déconnexion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Êtes-vous sûr de vouloir vous déconnecter ?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Non</button>
+                <a href="{% url 'logout' %}" class="btn btn-primary">Oui</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script JavaScript pour afficher le modal -->
+<script>
+function confirmLogout() {
+    console.log("Début de confirmLogout, user_id={{ user.id|default:'non connecté' }}");
+    try {
+        // Vérifier si Bootstrap est chargé
+        if (typeof bootstrap === 'undefined') {
+            console.error("Erreur : Bootstrap n'est pas chargé");
+            throw new Error("Bootstrap non chargé");
+        }
+        // Vérifier si l'élément modal existe
+        const modalElement = document.getElementById('logoutModal');
+        if (!modalElement) {
+            console.error("Erreur : Élément modal 'logoutModal' non trouvé dans le DOM");
+            throw new Error("Modal non trouvé");
+        }
+        console.log("Modal element trouvé:", modalElement);
+        // Initialiser et afficher le modal
+        const modal = new bootstrap.Modal(modalElement, {
+            keyboard: true,
+            backdrop: 'static' // Empêche la fermeture en cliquant à l'extérieur
+        });
+        console.log("Modal initialisé, tentative d'affichage");
+        modal.show();
+        console.log("Modal affiché avec succès");
+    } catch (e) {
+        console.error("Erreur lors de l'ouverture du modal:", e.message);
+        console.log("Redirection vers logout en raison de l'erreur");
+        window.location.href = "{% url 'logout' %}";
+    }
+}
+</script>

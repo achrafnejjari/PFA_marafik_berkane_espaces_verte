@@ -1,0 +1,51 @@
+
+services:
+  web:
+    build: .
+    ports:
+      - "9000:8081"   # localhost:9000 vers container:8081
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+
+    # ❌ Ancien command (problème de timing)
+    # command: python manage.py runserver 0.0.0.0:8081
+
+    # ✅ Nouveau command avec attente
+    command: sh -c "sleep 15 && python manage.py runserver 0.0.0.0:8081"
+
+  db:
+    image: mysql:latest
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: marafik_db #est juste le nom de la base qui sera créée dans le serveur MySQL.
+      MYSQL_USER: admin 
+      MYSQL_PASSWORD: 1234 
+    ports:
+      - "3307:3306"   # localhost:3307 vers container:3306 (évite port 3306 classique)
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin_container
+    restart: always
+    ports:
+      - "9001:80"   # localhost:9001 vers container:80
+    environment:
+      PMA_HOST: db  #container db est host de phpmyadmin , et password et utulisateur sont qui on dans container db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    depends_on:
+      - db
+
+volumes:
+  mysql_data:
+
+
+
+# Django App	http://127.0.0.1:8081/
+# phpMyAdmin	http://127.0.0.1:8082/

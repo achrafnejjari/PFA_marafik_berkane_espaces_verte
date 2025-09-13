@@ -1,0 +1,59 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Roboto', sans-serif;
+}
+
+.container {
+    max-width: 1400px;
+}
+
+h2 {
+    color: #333;
+    font-weight: 600;
+}
+
+.table {
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.table th {
+    text-align: center;
+    font-weight: 600;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table-danger {
+    background-color: #f8d7da !important;
+    color: #721c24;
+}
+
+.table-success {
+    background-color: #d4edda !important;
+    color: #155724;
+}
+
+.table-warning {
+    background-color: #fff3cd !important;
+    color: #856404;
+}
+
+.form-control:focus {
+    border-color: #000000;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+}
+
+.btn-primary {
+    background-color: #000000;
+    border-color: #000000;
+}
+
+.btn-primary:hover {
+    background-color: #ff6200;
+    border-color: #ff6200;
+}

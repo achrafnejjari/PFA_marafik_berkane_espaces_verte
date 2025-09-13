@@ -1,0 +1,26 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #ffffff;
+    color: #333333;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #000000;
+}
+
+.text-muted {
+    color: #555555;
+}
+
+@media (max-width: 576px) {
+    .card-title {
+        font-size: 1.5rem;
+    }
+}

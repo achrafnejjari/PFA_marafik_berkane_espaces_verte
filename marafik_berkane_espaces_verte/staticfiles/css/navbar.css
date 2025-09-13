@@ -1,0 +1,53 @@
+.navbar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.navbar-brand .logo {
+    height: 60px;
+    width: auto;
+    max-width: 150px; /* Limite la largeur du logo */
+    object-fit: contain; /* Conserve les proportions du logo */
+}
+
+.navbar-nav .nav-link {
+    color: #000000;
+    font-weight: 500;
+    padding: 10px 15px;
+    transition: color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: #ff6200; /* Orange pour le hover et l'état actif */
+}
+
+.btn-outline-dark {
+    border-color: #000000;
+    color: #000000;
+}
+
+.btn-outline-dark:hover {
+    background-color: #ff6200;
+    color: #ffffff;
+    border-color: #ff6200;
+}
+
+.btn-dark {
+    background-color: #000000;
+    border-color: #000000;
+}
+
+.btn-dark:hover {
+    background-color: #ff6200;
+    border-color: #ff6200;
+}
+
+@media (max-width: 576px) {
+    .navbar-brand .logo {
+        height: 30px; /* Taille réduite pour mobile */
+    }
+    .navbar-nav .nav-link {
+        padding: 8px 10px;
+    }
+}

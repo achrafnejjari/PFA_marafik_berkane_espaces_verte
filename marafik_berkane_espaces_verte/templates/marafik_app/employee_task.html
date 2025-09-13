@@ -1,0 +1,380 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saisie des Tâches - Marafik Berkane</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/employees_task.css' %}">
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
+</head>
+<body>
+    {% include 'partials/navbar.html' %}
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-10 col-md-10 col-lg-10">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">Saisie des Tâches</h2>
+                        <p class="text-center text-muted">Enregistrez les unités réalisées pour chaque tâche.</p>
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'info' %}alert-info{% else %}alert-danger{% endif %}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% for task_type_name, data in task_data.items %}
+                            <h4 class="mb-3">{{ task_type_name }}</h4>
+                            <div class="mb-4 text-end">
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal{{ data.task_type_id }}">Ajouter une entrée</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover table-bordered" id="table{{ data.task_type_id }}">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Quartier</th>
+                                            {% for day in days %}
+                                                <th scope="col">{{ day }}</th>
+                                            {% endfor %}
+                                            <th scope="col">Total</th>
+                                            <th scope="col">Date</th>
+                                            <th scope="col">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for task in data.tasks %}
+                                            <tr class="data-row" data-task-id="{{ task.id }}">
+                                                <td>{{ task.quartier|default:"-" }}</td>
+                                                {% for jour in task.jours %}
+                                                    <td>{{ jour|default:"0" }}</td>
+                                                {% endfor %}
+                                                <td>{{ task.total|default:"0" }}</td>
+                                                <td>{{ task.date|default:"-" }}</td>
+                                                <td>
+                                                    <button class="btn btn-warning btn-sm btn-edit" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#editModal{{ data.task_type_id }}" 
+                                                            data-task='{
+                                                                "id": "{{ task.id }}",
+                                                                "quartier": "{{ task.quartier|escapejs|default:'-' }}",
+                                                                "date": "{{ task.date|default:'2025-07'|escapejs }}",
+                                                                "jours": {{ task.jours|safe|default:'[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]' }}
+                                                            }'>Modifier</button>
+                                                    <form method="post" action="{% url 'employee_task' %}" style="display:inline;" class="delete-form">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="task_id" value="{{ task.id }}">
+                                                        <input type="hidden" name="delete_task" value="1">
+                                                        <button type="submit" class="btn btn-danger btn-sm btn-delete">Supprimer</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="34" class="text-center">Aucune entrée pour {{ task_type_name }}.</td>
+                                            </tr>
+                                        {% endfor %}
+                                        <tr class="total-row">
+                                            <td><strong>Total colonne</strong></td>
+                                            {% for jour in data.totals.jours %}
+                                                <td>{{ jour|default:"0" }}</td>
+                                            {% endfor %}
+                                            <td>{{ data.totals.total|default:"0" }}</td>
+                                            <td>-</td>
+                                            <td>-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="modal fade" id="addModal{{ data.task_type_id }}" tabindex="-1" aria-labelledby="addModal{{ data.task_type_id }}Label" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="addModal{{ data.task_type_id }}Label">Ajouter une entrée - {{ task_type_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="post" action="{% url 'employee_task' %}" class="add-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="add_task" value="1">
+                                                <input type="hidden" name="task_type_id" value="{{ data.task_type_id }}">
+                                                <div class="mb-3">
+                                                    <label for="adresse_{{ data.task_type_id }}" class="form-label">Quartier</label>
+                                                    <input type="text" class="form-control" id="adresse_{{ data.task_type_id }}" name="adresse" placeholder="Ex: Hay Salam, Lotissement X..." required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="date_{{ data.task_type_id }}" class="form-label">Année et Mois</label>
+                                                    <input type="month" class="form-control" id="date_{{ data.task_type_id }}" name="date" required value="{{ current_date|default:'2025-07' }}">
+                                                </div>
+                                                <div class="row">
+                                                    {% for day in days %}
+                                                        <div class="col-4 col-sm-3 col-md-2 mb-2">
+                                                            <label for="jour_{{ day }}_{{ data.task_type_id }}" class="form-label">Jour {{ day }}</label>
+                                                            <input type="number" class="form-control" id="jour_{{ day }}_{{ data.task_type_id }}" name="jour_{{ day }}" min="0" value="0">
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <button type="submit" class="btn btn-primary w-100 mt-3">Ajouter</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal fade" id="editModal{{ data.task_type_id }}" tabindex="-1" aria-labelledby="editModal{{ data.task_type_id }}Label" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editModal{{ data.task_type_id }}Label">Modifier une entrée - {{ task_type_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="post" action="{% url 'employee_task' %}" class="edit-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="edit_task" value="1">
+                                                <input type="hidden" name="task_id" id="edit_task_id_{{ data.task_type_id }}">
+                                                <div class="mb-3">
+                                                    <label for="edit_adresse_{{ data.task_type_id }}" class="form-label">Quartier</label>
+                                                    <input type="text" class="form-control" id="edit_adresse_{{ data.task_type_id }}" name="adresse" placeholder="Ex: Hay Salam, Lotissement X..." required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="edit_date_{{ data.task_type_id }}" class="form-label">Année et Mois</label>
+                                                    <input type="month" class="form-control" id="edit_date_{{ data.task_type_id }}" name="date" required>
+                                                </div>
+                                                <div class="row">
+                                                    {% for day in days %}
+                                                        <div class="col-4 col-sm-3 col-md-2 mb-2">
+                                                            <label for="edit_jour_{{ day }}_{{ data.task_type_id }}" class="form-label">Jour {{ day }}</label>
+                                                            <input type="number" class="form-control" id="edit_jour_{{ day }}_{{ data.task_type_id }}" name="jour_{{ day }}" min="0" value="0">
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <button type="submit" class="btn btn-primary w-100 mt-3">Modifier</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                        <div class="text-center mt-5">
+                            <button class="btn btn-danger" id="clearDisplayBtn">Vider l'affichage</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'partials/footer.html' %}
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Clear display button handler
+            document.getElementById('clearDisplayBtn').addEventListener('click', function() {
+                console.log('Clear display button clicked');
+                if (!confirm('Voulez-vous vraiment vider l\'affichage ? Les tâches actuelles ne seront plus affichées pour vous.')) {
+                    return;
+                }
+                try {
+                    // Collect task IDs to hide
+                    const taskIds = [];
+                    document.querySelectorAll('.data-row').forEach(row => {
+                        const taskId = row.getAttribute('data-task-id');
+                        if (taskId) taskIds.push(taskId);
+                        row.remove();
+                    });
+                    console.log('Task IDs to hide:', taskIds);
+
+                    // Reset totals
+                    document.querySelectorAll('.total-row td:not(:first-child):not(:last-child)').forEach(cell => {
+                        cell.textContent = '0';
+                    });
+                    document.querySelectorAll('.total-row td:nth-last-child(2)').forEach(cell => {
+                        cell.textContent = '0';
+                    });
+
+                    // Send task IDs to server to mark as hidden
+                    if (taskIds.length > 0) {
+                        const formData = new FormData();
+                        formData.append('hide_tasks', '1');
+                        taskIds.forEach(taskId => formData.append('task_ids[]', taskId));
+                        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                        fetch("{% url 'employee_task' %}", {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                console.log('Tasks marked as hidden');
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-info mt-3';
+                                alertDiv.textContent = 'Affichage vidé. Vous pouvez ajouter de nouvelles tâches.';
+                                document.querySelector('.card-body').prepend(alertDiv);
+                                setTimeout(() => alertDiv.remove(), 3000);
+                            } else {
+                                console.error('Failed to mark tasks as hidden:', response.statusText);
+                                alert('Erreur lors du masquage des tâches.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error hiding tasks:', error);
+                            alert('Erreur : Impossible de masquer les tâches.');
+                        });
+                    } else {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-info mt-3';
+                        alertDiv.textContent = 'Aucune tâche à masquer. Vous pouvez ajouter de nouvelles tâches.';
+                        document.querySelector('.card-body').prepend(alertDiv);
+                        setTimeout(() => alertDiv.remove(), 3000);
+                    }
+                    console.log('Display cleared');
+                } catch (error) {
+                    console.error('Error clearing display:', error);
+                    alert('Erreur lors du vidage de l\'affichage.');
+                }
+            });
+
+            // Edit button handler
+            document.querySelectorAll('.btn-edit').forEach(button => {
+                button.addEventListener('click', function () {
+                    let taskData;
+                    try {
+                        taskData = JSON.parse(this.getAttribute('data-task'));
+                    } catch (error) {
+                        console.error('Error parsing data-task:', error);
+                        alert('Erreur : Impossible de charger les données de la tâche.');
+                        return;
+                    }
+
+                    const modalId = this.getAttribute('data-bs-target');
+                    const modal = document.querySelector(modalId);
+                    if (!modal) {
+                        console.error(`Error: Modal not found for modalId=${modalId}`);
+                        return;
+                    }
+
+                    const taskTypeId = modalId.replace('#editModal', '');
+                    const form = modal.querySelector(`form`);
+                    if (!form) {
+                        console.error(`Error: Form not found for editModal${taskTypeId}`);
+                        return;
+                    }
+
+                    form.reset();
+
+                    const taskIdInput = form.querySelector(`#edit_task_id_${taskTypeId}`);
+                    const quartierInput = form.querySelector(`input[name="adresse"]`);
+                    const dateInput = form.querySelector(`input[name="date"]`);
+
+                    if (!taskIdInput || !quartierInput || !dateInput) {
+                        console.error('Error: Form fields missing:', {
+                            taskIdInput: !!taskIdInput,
+                            quartierInput: !!quartierInput,
+                            dateInput: !!dateInput
+                        });
+                        return;
+                    }
+
+                    taskIdInput.value = taskData.id || '';
+                    quartierInput.value = taskData.quartier !== '-' ? taskData.quartier : '';
+                    dateInput.value = taskData.date && taskData.date !== '-' ? taskData.date : '2025-07';
+
+                    const jours = taskData.jours && taskData.jours.length === 31 ? taskData.jours : Array(31).fill(0);
+                    for (let day = 1; day <= 31; day++) {
+                        const input = form.querySelector(`#edit_jour_${day}_${taskTypeId}`);
+                        if (input) {
+                            input.value = jours[day - 1] || 0;
+                        }
+                    }
+
+                    console.log('Edit modal populated:', {
+                        task_id: taskData.id,
+                        quartier: taskData.quartier,
+                        date: taskData.date,
+                        jours: jours
+                    });
+
+                    try {
+                        const modalInstance = new bootstrap.Modal(modal);
+                        modalInstance.show();
+                    } catch (error) {
+                        console.error('Error opening modal:', error);
+                        alert('Erreur : Impossible d\'afficher la fenêtre de modification.');
+                    }
+                });
+            });
+
+            // Form validation for add and edit
+            document.querySelectorAll('form.add-form, form.edit-form').forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    const quartierInput = form.querySelector('input[name="adresse"]');
+                    const dateInput = form.querySelector('input[name="date"]');
+                    console.log('Form submission:', {
+                        quartier: quartierInput.value,
+                        date: dateInput.value
+                    });
+                    if (!quartierInput.value.trim()) {
+                        event.preventDefault();
+                        console.error('Error: quartier is empty');
+                        alert('Erreur : Le champ Quartier est requis.');
+                    }
+                    if (!dateInput.value) {
+                        event.preventDefault();
+                        console.error('Error: date is empty');
+                        alert('Erreur : Le champ Année et Mois est requis.');
+                    }
+                });
+            });
+
+            // Delete form handler
+            document.querySelectorAll('form.delete-form').forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const taskIdInput = form.querySelector('input[name="task_id"]');
+                    console.log('Delete form submitted:', {
+                        task_id: taskIdInput.value,
+                        delete_task: form.querySelector('input[name="delete_task"]').value
+                    });
+                    if (!taskIdInput.value) {
+                        console.error('Error: task_id is empty');
+                        alert('Erreur : ID de tâche non défini.');
+                        return;
+                    }
+                    if (confirm('Voulez-vous vraiment supprimer cette entrée ?')) {
+                        fetch(form.action, {
+                            method: 'POST',
+                            body: new FormData(form),
+                            headers: {
+                                'X-CSRFToken': form.querySelector('input[name="csrfmiddlewaretoken"]').value
+                            }
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                console.log('Delete successful, reloading page');
+                                window.location.reload();
+                            } else {
+                                console.error('Delete failed:', response.statusText);
+                                alert('Erreur lors de la suppression de la tâche.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error during delete:', error);
+                            alert('Erreur : Impossible de supprimer la tâche.');
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

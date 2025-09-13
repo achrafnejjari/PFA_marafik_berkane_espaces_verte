@@ -1,0 +1,328 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration Admin - Marafik Berkane</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/admin_setup.css' %}">
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
+</head>
+<body>
+    <!-- Navbar -->
+    {% include 'partials/navbar.html' %}
+
+    <!-- Contenu principal -->
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-sm-10 col-md-10 col-lg-10">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h2 class="card-title text-center mb-4">Configuration Admin</h2>
+                        <p class="text-center text-muted">Gérez les données des tâches pour les employés.</p>
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Formulaire pour choisir l'année et le mois -->
+                        <h4 class="mb-3">Filtrer par Année et Mois</h4>
+                        <form method="get" action="{% url 'admin_setup' %}" class="mb-5">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="year_month" class="form-label">Année et Mois</label>
+                                <input type="month" class="form-control" id="year_month" name="year_month" value="{{ year_month|default_if_none:'' }}" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Filtrer</button>
+                        </form>
+
+                        <!-- Boucle sur chaque type de tâche -->
+                        {% for task_type_name, data in task_data.items %}
+                            <!-- Tableau pour le type de tâche -->
+                            <h4 class="mb-3">{{ task_type_name }}</h4>
+                            <div class="mb-4 text-end">
+                                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal{{ data.task_type_id }}">Ajouter une entrée</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="table{{ data.task_type_id }}">
+                                    <thead>
+                                        <tr>
+                                            <th>Quartier</th>
+                                            {% for day in days %}
+                                                <th>{{ day }}</th>
+                                            {% endfor %}
+                                            <th>Total</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for task in data.tasks %}
+                                            <tr class="data-row">
+                                                <td>{{ task.quartier }}</td>
+                                                {% for jour in task.jours %}
+                                                    <td>{{ jour }}</td>
+                                                {% endfor %}
+                                                <td>{{ task.total }}</td>
+                                                <td>{{ task.date }}</td>
+                                            <td>
+                                                    <button class="btn btn-warning btn-sm btn-edit" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#editModal{{ data.task_type_id }}" 
+                                                            data-task='{
+                                                                "id": "{{ task.id }}",
+                                                                "quartier": "{{ task.quartier|escapejs }}",
+                                                                "date": "{{ task.date }}",
+                                                                "jours": {{ task.jours|safe }}
+                                                            }'>Modifier</button>
+                                                    <form method="post" action="{% url 'admin_setup' %}" style="display:inline;" onsubmit="return confirm('Voulez-vous vraiment supprimer cette entrée ?');">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="task_id" value="{{ task.id }}">
+                                                        <input type="hidden" name="delete_task" value="1">
+                                                        <button type="submit" class="btn btn-danger btn-sm btn-delete">Supprimer</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="34" class="text-center">Aucune entrée pour {{ task_type_name }}.</td>
+                                            </tr>
+                                        {% endfor %}
+                                        <tr class="total-row">
+                                            <td><strong>Total colonne</strong></td>
+                                            {% for jour in data.totals.jours %}
+                                                <td>{{ jour }}</td>
+                                            {% endfor %}
+                                            <td>{{ data.totals.total }}</td>
+                                            <td>-</td>
+                                            <td>-</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Modale pour ajouter une entrée -->
+                            <div class="modal fade" id="addModal{{ data.task_type_id }}" tabindex="-1" aria-labelledby="addModal{{ data.task_type_id }}Label" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="addModal{{ data.task_type_id }}Label">Ajouter une entrée - {{ task_type_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="post" action="{% url 'admin_setup' %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="add_task" value="1">
+                                                <input type="hidden" name="task_type_id" value="{{ data.task_type_id }}">
+                                                <div class="mb-3">
+                                                    <label for="adresse_{{ data.task_type_id }}" class="form-label">Quartier</label>
+                                                    <input type="text" class="form-control" id="adresse_{{ data.task_type_id }}" name="adresse" placeholder="Ex: Hay Salam, Lotissement X..." required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="date_{{ data.task_type_id }}" class="form-label">Année et Mois</label>
+                                                    <input type="month" class="form-control" id="date_{{ data.task_type_id }}" name="date" required>
+                                                </div>
+                                                <div class="row">
+                                                    {% for day in days %}
+                                                        <div class="col-4 col-sm-3 col-md-2 mb-2">
+                                                            <label for="jour_{{ day }}_{{ data.task_type_id }}" class="form-label">Jour {{ day }}</label>
+                                                            <input type="number" class="form-control" id="jour_{{ day }}_{{ data.task_type_id }}" name="jour_{{ day }}" min="0" value="0">
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <button type="submit" class="btn btn-primary w-100 mt-3">Ajouter</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modale pour modifier une entrée -->
+                            <div class="modal fade" id="editModal{{ data.task_type_id }}" tabindex="-1" aria-labelledby="editModal{{ data.task_type_id }}Label" aria-hidden="true">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editModal{{ data.task_type_id }}Label">Modifier une entrée - {{ task_type_name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="post" action="{% url 'admin_setup' %}" id="editForm{{ data.task_type_id }}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="edit_task" value="1">
+                                                <input type="hidden" name="task_id" id="edit_task_id_{{ data.task_type_id }}">
+                                                <div class="mb-3">
+                                                    <label for="edit_adresse_{{ data.task_type_id }}" class="form-label">Quartier</label>
+                                                    <input type="text" class="form-control" id="edit_adresse_{{ data.task_type_id }}" name="adresse" placeholder="Ex: Hay Salam, Lotissement X..." required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="edit_date_{{ data.task_type_id }}" class="form-label">Année et Mois</label>
+                                                    <input type="month" class="form-control" id="edit_date_{{ data.task_type_id }}" name="date" required>
+                                                </div>
+                                                <div class="row">
+                                                    {% for day in days %}
+                                                        <div class="col-4 col-sm-3 col-md-2 mb-2">
+                                                            <label for="edit_jour_{{ day }}_{{ data.task_type_id }}" class="form-label">Jour {{ day }}</label>
+                                                            <input type="number" class="form-control" id="edit_jour_{{ day }}_{{ data.task_type_id }}" name="jour_{{ day }}" min="0" value="0">
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <button type="submit" class="btn btn-primary w-100 mt-3">Modifier</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    {% include 'partials/footer.html' %}
+
+    <!-- Bootstrap 5 JS et Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-fbbOQedDUMZZ5KreZpsbe1LCZPVmfTnH7ois6mU1QK+m14rQ1l2bGBq41eYeM/fS" crossorigin="anonymous"></script>
+
+    <!-- Script pour pré-remplir la modale de modification et gérer la suppression -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Edit button handler
+            document.querySelectorAll('.btn-edit').forEach(button => {
+                button.addEventListener('click', function () {
+                    let taskData;
+                    try {
+                        taskData = JSON.parse(this.getAttribute('data-task'));
+                    } catch (error) {
+                        console.error('Error parsing data-task:', error);
+                        alert('Erreur : Impossible de charger les données de la tâche.');
+                        return;
+                    }
+
+                    const modalId = this.getAttribute('data-bs-target');
+                    const modal = document.querySelector(modalId);
+                    if (!modal) {
+                        console.error(`Error: Modal not found for modalId=${modalId}`);
+                        alert('Erreur : Impossible d\'ouvrir la fenêtre de modification.');
+                        return;
+                    }
+
+                    const taskTypeId = modalId.replace('#editModal', '');
+                    const form = modal.querySelector(`#editForm${taskTypeId}`);
+                    if (!form) {
+                        console.error(`Error: Form not found for editForm${taskTypeId}`);
+                        alert('Erreur : Formulaire de modification introuvable.');
+                        return;
+                    }
+
+                    // Reset form
+                    form.reset();
+
+                    // Populate fields
+                    const taskIdInput = form.querySelector(`#edit_task_id_${taskTypeId}`);
+                    const quartierInput = form.querySelector(`input[name="adresse"]`);
+                    const dateInput = form.querySelector(`input[name="date"]`);
+                    
+                    if (!taskIdInput || !quartierInput || !dateInput) {
+                        console.error('Error: Form fields missing:', {
+                            taskIdInput: !!taskIdInput,
+                            quartierInput: !!quartierInput,
+                            dateInput: !!dateInput
+                        });
+                        alert('Erreur : Champs du formulaire introuvables.');
+                        return;
+                    }
+
+                    taskIdInput.value = taskData.id || '';
+                    quartierInput.value = taskData.quartier || '';
+                    dateInput.value = taskData.date || '';
+
+                    // Populate day fields
+                    const jours = taskData.jours || Array(31).fill(0);
+                    for (let day = 1; day <= 31; day++) {
+                        const input = form.querySelector(`#edit_jour_${day}_${taskTypeId}`);
+                        if (input) {
+                            input.value = jours[day - 1] || 0;
+                        } else {
+                            console.error(`Error: Input edit_jour_${day}_${taskTypeId} not found`);
+                        }
+                    }
+
+                    // Log for debugging
+                    console.log('Modal populated:', {
+                        task_id: taskData.id,
+                        quartier: taskData.quartier,
+                        date: taskData.date,
+                        jours: jours
+                    });
+
+                    // Show modal
+                    try {
+                        const modalInstance = new bootstrap.Modal(modal);
+                        modalInstance.show();
+                    } catch (error) {
+                        console.error('Error opening modal:', error);
+                        alert('Erreur : Impossible d\'afficher la fenêtre de modification.');
+                    }
+                });
+            });
+
+            // Delete form handler
+            document.querySelectorAll('form:has(input[name="delete_task"])').forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    const taskIdInput = form.querySelector('input[name="task_id"]');
+                    console.log('Delete form submitted:', {
+                        task_id: taskIdInput.value,
+                        delete_task: form.querySelector('input[name="delete_task"]').value
+                    });
+                    if (!taskIdInput.value) {
+                        event.preventDefault();
+                        console.error('Error: task_id is empty');
+                        alert('Erreur : ID de tâche non défini.');
+                    }
+                });
+            });
+
+            // Edit form validation
+            document.querySelectorAll('form[id^="editForm"]').forEach(form => {
+                form.addEventListener('submit', function(event) {
+                    const taskIdInput = form.querySelector('input[name="task_id"]');
+                    const quartierInput = form.querySelector('input[name="adresse"]');
+                    const dateInput = form.querySelector('input[name="date"]');
+                    
+                    console.log('Edit form submission data:', {
+                        task_id: taskIdInput.value,
+                        quartier: quartierInput.value,
+                        date: dateInput.value
+                    });
+
+                    if (!taskIdInput.value) {
+                        event.preventDefault();
+                        console.error('Error: task_id is empty');
+                        alert('Erreur : ID de tâche non défini.');
+                    }
+                    if (!quartierInput.value) {
+                        event.preventDefault();
+                        console.error('Error: quartier is empty');
+                        alert('Erreur : Le champ Quartier est requis.');
+                    }
+                    if (!dateInput.value) {
+                        event.preventDefault();
+                        console.error('Error: date is empty');
+                        alert('Erreur : Le champ Année et Mois est requis.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
