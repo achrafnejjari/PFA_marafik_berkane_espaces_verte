@@ -113,8 +113,49 @@
                                                         {% if utilisateur.actif %}Désactiver{% else %}Activer{% endif %}
                                                     </button>
                                                 </form>
+                                                <!-- Bouton pour modifier -->
+                                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal{{ utilisateur.user.id }}">
+                                                    Modifier
+                                                </button>
+                                                <!-- Formulaire pour supprimer -->
+                                                <form method="post" action="{% url 'super_admin_users' %}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?');">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="user_id" value="{{ utilisateur.user.id }}">
+                                                    <input type="hidden" name="action" value="delete_user">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+                                                </form>
                                             </td>
                                         </tr>
+                                        <!-- Modal pour modifier l'utilisateur -->
+                                        <div class="modal fade" id="editUserModal{{ utilisateur.user.id }}" tabindex="-1" aria-labelledby="editUserModalLabel{{ utilisateur.user.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="editUserModalLabel{{ utilisateur.user.id }}">Modifier Utilisateur</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form method="post" action="{% url 'super_admin_users' %}">
+                                                        <div class="modal-body">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="user_id" value="{{ utilisateur.user.id }}">
+                                                            <input type="hidden" name="action" value="edit_user">
+                                                            <div class="mb-3">
+                                                                <label for="last_name_{{ utilisateur.user.id }}" class="form-label">Nom</label>
+                                                                <input type="text" class="form-control" id="last_name_{{ utilisateur.user.id }}" name="last_name" value="{{ utilisateur.user.last_name }}" required>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label for="email_{{ utilisateur.user.id }}" class="form-label">Email</label>
+                                                                <input type="email" class="form-control" id="email_{{ utilisateur.user.id }}" name="email" value="{{ utilisateur.user.email }}" required>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                            <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
                                     {% empty %}
                                         <tr>
                                             <td colspan="5" class="text-center text-muted">Aucun utilisateur trouvé.</td>

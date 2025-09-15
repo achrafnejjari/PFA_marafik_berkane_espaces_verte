@@ -28,6 +28,7 @@
             border: 1px solid #dee2e6;
             border-radius: 8px;
             padding: 20px;
+            margin-bottom: 30px;
         }
         .table th {
             background-color: #f8f9fa;
@@ -61,10 +62,15 @@
             font-size: 14px;
             border-radius: 5px;
         }
-        .btn-confirm:hover {
-            background-color: #ff6200; /* Orange au survol */
+        .btn-hide {
+            background-color: #6c757d; /* Gris pour masquer */
+            color: #ffffff;
+            border: none;
+            padding: 8px 15px;
+            font-size: 14px;
+            border-radius: 5px;
         }
-        .btn-restore:hover {
+        .btn-confirm:hover, .btn-restore:hover, .btn-hide:hover {
             background-color: #ff6200; /* Orange au survol */
         }
         .alert {
@@ -80,7 +86,7 @@
             background-color: #f8d7da;
             color: #721c24;
         }
-        h1 {
+        h1, h2 {
             color: #000000;
             text-align: center;
             margin-bottom: 30px;
@@ -93,7 +99,7 @@
             .table th, .table td {
                 font-size: 12px;
             }
-            .btn-confirm, .btn-restore {
+            .btn-confirm, .btn-restore, .btn-hide {
                 font-size: 12px;
                 padding: 5px 10px;
             }
@@ -151,6 +157,46 @@
                     {% empty %}
                         <tr>
                             <td colspan="7" class="text-center">Aucune tâche supprimée en attente de validation.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h2>Tâches Créées par les Utilisateurs</h2>
+        <div class="table-container">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>ID Tâche</th>
+                        <th>Type de Tâche</th>
+                        <th>Quartier</th>
+                        <th>Date</th>
+                        <th>Créateur</th>
+                        <th>Date de Création</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in task_data_created %}
+                        <tr>
+                            <td>{{ task.id }}</td>
+                            <td>{{ task.task_type }}</td>
+                            <td>{{ task.quartier }}</td>
+                            <td>{{ task.date }}</td>
+                            <td>{{ task.user }}</td>
+                            <td>{{ task.created_at|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <form method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="task_id" value="{{ task.id }}">
+                                    <button type="submit" name="hide_task" class="btn btn-hide" onclick="return confirm('Masquer cette tâche ?');">Masquer</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">Aucune tâche créée disponible.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

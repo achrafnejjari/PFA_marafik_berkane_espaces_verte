@@ -116,7 +116,7 @@ def register(request):
             Utilisateur.objects.create(
                 user=user,
                 role=role,
-                actif=True,
+                actif=False,
                 email=email
             )
             logger.info(f"Entrée Utilisateur créée pour {email} avec rôle Employé")
@@ -580,7 +580,7 @@ def super_admin_users(request):
             try:
                 utilisateur = Utilisateur.objects.get(user__id=user_id)
 
-                # 🔒 Empêcher la modification de soi-même
+                #  Empêcher la modification de soi-même
                 if utilisateur.user == request.user:
                     messages.error(request, "Vous ne pouvez pas modifier votre propre compte.")
                     logger.warning(f"Tentative de modification de soi-même par {request.user.username}")
@@ -608,6 +608,30 @@ def super_admin_users(request):
                         utilisateur.save()
                         messages.success(request, f"Rôle de {utilisateur.user.username} mis à jour : {old_role} → {new_role.nom}.")
                         logger.info(f"Rôle changé pour {utilisateur.user.username}: {old_role} → {new_role.nom}")
+
+                elif action == 'edit_user':
+                    # Modifier les informations de l'utilisateur
+                    last_name = request.POST.get('last_name')
+                    email = request.POST.get('email')
+                    
+                    if not all([last_name, email]):
+                        messages.error(request, "Les champs nom et email sont requis.")
+                    elif User.objects.filter(email=email).exclude(id=user_id).exists():
+                        messages.error(request, "Cet email est déjà utilisé.")
+                    else:
+                        user = utilisateur.user
+                        user.last_name = last_name
+                        user.email = email
+                        user.save()
+                        messages.success(request, f"Utilisateur {user.username} mis à jour avec succès.")
+                        logger.info(f"Utilisateur {user.username} modifié: {last_name}, {email}")
+
+                elif action == 'delete_user':
+                    # Supprimer l'utilisateur
+                    username = utilisateur.user.username
+                    utilisateur.user.delete()
+                    messages.success(request, f"Utilisateur {username} supprimé avec succès.")
+                    logger.info(f"Utilisateur {username} supprimé")
 
                 else:
                     messages.error(request, "Action non reconnue.")
@@ -648,7 +672,7 @@ def super_admin_users(request):
         logger.error(f"Erreur critique dans super_admin_users: {str(e)}")
         messages.error(request, "Une erreur est survenue lors du chargement de la page.")
         return render(request, 'marafik_app/super_admin_users.html')
-
+    
 
 @login_required
 @role_required("Admin")
@@ -713,43 +737,72 @@ def footer(request):
 @never_cache
 @role_required("Admin")
 def historique_view(request):
+    logger.debug("Début de la vue historique_view")
     try:
-        # Récupérer toutes les tâches avec is_deleted=True
-        tasks = Task.objects.filter(is_deleted=True).select_related('task_type', 'created_by').order_by('-updated_at')
+        # Récupérer les tâches supprimées (is_deleted=True)
+        logger.debug("Récupération des tâches supprimées")
         task_data = []
+        try:
+            tasks = Task.objects.filter(is_deleted=True).select_related('task_type', 'created_by').order_by('-updated_at')
+            for task in tasks:
+                task_data.append({
+                    'id': task.id,
+                    'task_type': task.task_type.name if task.task_type else 'N/A',
+                    'quartier': task.quartier or 'N/A',
+                    'date': task.date or 'N/A',
+                    'user': task.created_by.username if task.created_by else 'Utilisateur inconnu',
+                    'updated_at': task.updated_at,
+                })
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des tâches supprimées : {str(e)}")
+            messages.error(request, "Erreur lors de la récupération des tâches supprimées.")
 
-        for task in tasks:
-            task_data.append({
-                'id': task.id,
-                'task_type': task.task_type.name if task.task_type else 'N/A',
-                'quartier': task.quartier or 'N/A',
-                'date': task.date or 'N/A',
-                'user': task.created_by.username if task.created_by else 'Utilisateur inconnu',
-                'updated_at': task.updated_at,
-            })
+        # Récupérer les tâches non supprimées et non masquées pour l'utilisateur actuel
+        logger.debug("Récupération des tâches non supprimées et non masquées")
+        task_data_created = []
+        try:
+            # Exclure les tâches masquées pour l'utilisateur actuel
+            hidden_task_ids = HiddenTask.objects.filter(user=request.user, is_hidden=True).values_list('task_id', flat=True)
+            tasks_created = Task.objects.filter(is_deleted=False).exclude(id__in=hidden_task_ids).select_related('task_type', 'created_by').order_by('-created_at')
+            for task in tasks_created:
+                task_data_created.append({
+                    'id': task.id,
+                    'task_type': task.task_type.name if task.task_type else 'N/A',
+                    'quartier': task.quartier or 'N/A',
+                    'date': task.date or 'N/A',
+                    'user': task.created_by.username if task.created_by else 'Utilisateur inconnu',
+                    'created_at': task.created_at,
+                })
+        except Exception as e:
+            logger.error(f"Erreur lors de la récupération des tâches créées : {str(e)}")
+            messages.error(request, "Erreur lors de la récupération des tâches créées.")
 
+        # Gestion des requêtes POST
         if request.method == "POST":
+            logger.debug("Traitement de la requête POST")
             try:
                 if "confirm_delete" in request.POST:
                     task_id = request.POST.get("task_id")
+                    logger.debug(f"Tentative de suppression définitive de la tâche {task_id}")
                     try:
                         with transaction.atomic():
                             task = Task.objects.get(id=task_id, is_deleted=True)
                             task.delete()
                             TaskHistory.objects.create(
-                                task=None,  # Tâche supprimée définitivement
+                                task=None,
                                 user=request.user,
                                 action="DELETE"
                             )
                             messages.success(request, f"Tâche {task_id} supprimée définitivement.")
-                            logger.debug(f"Task {task_id} permanently deleted by {request.user.username}")
+                            logger.debug(f"Tâche {task_id} supprimée définitivement par {request.user.username}")
                     except Task.DoesNotExist:
                         messages.error(request, f"Tâche {task_id} introuvable ou déjà supprimée.")
-                        logger.error(f"Task {task_id} not found for permanent deletion")
-                    return HttpResponseRedirect('/marafik_app/marafik_app__admin_historique/')  # URL directe
+                        logger.error(f"Tâche {task_id} non trouvée pour suppression définitive")
+                    return HttpResponseRedirect('/marafik_app/marafik_app__admin_historique/')
 
                 elif "restore_task" in request.POST:
                     task_id = request.POST.get("task_id")
+                    logger.debug(f"Tentative de restauration de la tâche {task_id}")
                     try:
                         with transaction.atomic():
                             task = Task.objects.get(id=task_id, is_deleted=True)
@@ -761,22 +814,53 @@ def historique_view(request):
                                 action="UPDATE"
                             )
                             messages.success(request, f"Tâche {task_id} restaurée.")
-                            logger.debug(f"Task {task_id} restored by {request.user.username}")
+                            logger.debug(f"Tâche {task_id} restaurée par {request.user.username}")
                     except Task.DoesNotExist:
                         messages.error(request, f"Tâche {task_id} introuvable.")
-                        logger.error(f"Task {task_id} not found for restoration")
-                    return HttpResponseRedirect('/marafik_app/marafik_app__admin_historique/')  # URL directe
+                        logger.error(f"Tâche {task_id} non trouvée pour restauration")
+                    return HttpResponseRedirect('/marafik_app/marafik_app__admin_historique/')
+
+                elif "hide_task" in request.POST:
+                    task_id = request.POST.get("task_id")
+                    logger.debug(f"Tentative de masquage de la tâche {task_id}")
+                    try:
+                        with transaction.atomic():
+                            task = Task.objects.get(id=task_id, is_deleted=False)
+                            # Vérifier si la tâche est déjà masquée pour cet utilisateur
+                            if not HiddenTask.objects.filter(user=request.user, task=task).exists():
+                                HiddenTask.objects.create(
+                                    user=request.user,
+                                    task=task,
+                                    is_hidden=True
+                                )
+                                messages.success(request, f"Tâche {task_id} masquée.")
+                                logger.debug(f"Tâche {task_id} masquée par {request.user.username}")
+                            else:
+                                messages.info(request, f"Tâche {task_id} déjà masquée.")
+                                logger.debug(f"Tâche {task_id} déjà masquée pour {request.user.username}")
+                    except Task.DoesNotExist:
+                        messages.error(request, f"Tâche {task_id} introuvable.")
+                        logger.error(f"Tâche {task_id} non trouvée pour masquage")
+                    except Exception as e:
+                        messages.error(request, f"Erreur lors du masquage de la tâche : {str(e)}")
+                        logger.error(f"Erreur lors du masquage de la tâche {task_id} : {str(e)}")
+                    return HttpResponseRedirect('/marafik_app/marafik_app__admin_historique/')
 
             except Exception as e:
+                logger.error(f"Erreur POST dans historique_view : {str(e)}")
                 messages.error(request, f"Erreur lors de l'opération : {str(e)}")
-                logger.error(f"POST error in historique_view: {str(e)}")
-                return HttpResponseRedirect('/marafik_app/marafik_app__admin_historique/')  # URL directe
+                return HttpResponseRedirect('/marafik_app/marafik_app__admin_historique/')
 
+        logger.debug("Rendu de la page historique.html")
         return render(request, 'marafik_app/historique.html', {
             'task_data': task_data,
+            'task_data_created': task_data_created,
         })
 
     except Exception as e:
-        messages.error(request, f"Erreur lors du chargement des tâches supprimées : {str(e)}")
-        logger.error(f"Error in historique_view: {str(e)}")
-        return render(request, 'marafik_app/historique.html', {'task_data': []})
+        logger.error(f"Erreur critique dans historique_view : {str(e)}")
+        messages.error(request, f"Erreur critique lors du chargement de la page : {str(e)}")
+        return render(request, 'marafik_app/historique.html', {
+            'task_data': [],
+            'task_data_created': [],
+        })
