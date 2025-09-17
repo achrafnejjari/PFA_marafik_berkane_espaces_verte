@@ -116,7 +116,7 @@ def register(request):
             Utilisateur.objects.create(
                 user=user,
                 role=role,
-                actif=False,
+                actif=True,
                 email=email
             )
             logger.info(f"Entrée Utilisateur créée pour {email} avec rôle Employé")
