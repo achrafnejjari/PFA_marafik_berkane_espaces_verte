@@ -87,4 +87,4 @@ http://127.0.0.1:8000
 # 📝 Auteur
 
 👨‍💻 Réalisé par Achraf Nejjari
-Dans le cadre du Stage PFA (2024/2025)
+Dans le cadre du Stage PFA Juillet – Septembre 2025
