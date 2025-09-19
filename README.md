@@ -45,7 +45,7 @@ Admin : suivi des employés et sociétés, validation/modification des intervent
 Employés : consultation de leurs tâches, saisie et mise à jour de leurs activités.
 
 
-#🚀 Installation et exécution
+# 🚀 Installation et exécution
 Prérequis
 
 Python 3.10+
